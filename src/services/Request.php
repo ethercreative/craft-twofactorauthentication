@@ -56,6 +56,17 @@ class Request extends Component
         $responseService = TwoFactorAuth::$plugin->response;
         $verify = TwoFactorAuth::$plugin->verify;
 
+        $settings = TwoFactorAuth::$plugin->getSettings();
+
+        // Don't verify when disabled.
+        if ($request->getIsCpRequest()) {
+            if (!$settings->verifyBackEnd) {
+                return;
+            }
+        } elseif (!$settings->verifyFrontEnd) {
+            return;
+        }
+
         if (isset($user) &&
             $verify->isEnabled($user) &&
             !$verify->isVerified($user)
@@ -63,7 +74,7 @@ class Request extends Component
             if ($request->getIsCpRequest()) {
                 $url = UrlHelper::actionUrl('two-factor-authentication/verify/login');
             } else {
-                $url = UrlHelper::siteUrl(TwoFactorAuth::$plugin->getSettings()->getVerifyPath());
+                $url = UrlHelper::siteUrl($settings->verifyPath);
             }
 
             // Redirect to verification page.
@@ -101,8 +112,9 @@ class Request extends Component
     {
         $request = Craft::$app->getRequest();
         $actionSegs = $request->getActionSegments();
+        $settings = TwoFactorAuth::$plugin->getSettings();
 
-        return $request->getIsCpRequest() &&
+        return ($settings->verifyBackEnd && $request->getIsCpRequest()) &&
                 // COPIED from craft\web\Application::_isSpecialCaseActionRequest
                 $request->getPathInfo() !== '' &&
                !$this->isCraftSpecialRequests() &&
@@ -124,44 +136,42 @@ class Request extends Component
             return false;
         }
 
-        $frontEndPathWhitelist = $settings->getFrontEndPathWhitelist();
-        $frontEndPathBlacklist = $settings->getFrontEndPathBlacklist();
         $pathInfo = $request->getPathInfo();
 
         $isLoginPath = (
             $pathInfo === trim($generalConfig->getLoginPath(), '/') ||
             $pathInfo === trim($generalConfig->getLogoutPath(), '/') ||
-            $pathInfo === trim($settings->getVerifyPath(), '/') ||
-            $pathInfo === trim($settings->getSettingsPath(), '/')
+            $pathInfo === trim($settings->verifyPath, '/') ||
+            $pathInfo === trim($settings->settingsPath, '/')
         );
 
-        $isWhitelisted = false;
-        foreach ($frontEndPathWhitelist as $path) {
+        $isAllowed = false;
+        foreach ($settings->frontEndPathAllow as $path) {
             if ($this->isRegex("/$path/i")) {
                 if (preg_match("/$path/i", $pathInfo)) {
-                    $isWhitelisted = true;
+                    $isAllowed = true;
                 }
             } elseif ($path === $pathInfo) {
-                $isWhitelisted = true;
+                $isAllowed = true;
             }
         }
 
-        $isBlacklisted = false;
-        foreach ($frontEndPathBlacklist as $path) {
+        $isExcluded = false;
+        foreach ($settings->frontEndPathExclude as $path) {
             if ($this->isRegex("/$path/i")) {
                 if (preg_match("/$path/i", $pathInfo)) {
-                    $isBlacklisted = true;
+                    $isExcluded = true;
                 }
             } elseif ($path === $pathInfo) {
-                $isBlacklisted = true;
+                $isExcluded = true;
             }
         }
 
         return !$this->isCraftSpecialRequests() &&
             !$this->is2FASpecialRequests() &&
             !$isLoginPath &&
-            !$isWhitelisted &&
-            $isBlacklisted;
+            !$isAllowed &&
+            $isExcluded;
     }
 
     /**
@@ -170,21 +180,27 @@ class Request extends Component
      */
     private function isCraftSpecialRequests()
     {
+        // COPIED from craft\web\Application::_isSpecialCaseActionRequest
         $request = Craft::$app->getRequest();
         $actionSegs = $request->getActionSegments();
 
+        if (empty($actionSegs)) {
+            return false;
+        }
+
         return (
-            // COPIED from craft\web\Application::_isSpecialCaseActionRequest
             $actionSegs === ['app', 'migrate'] ||
             $actionSegs === ['users', 'login'] ||
+            $actionSegs === ['users', 'forgot-password'] ||
+            $actionSegs === ['users', 'send-password-reset-email'] ||
+            $actionSegs === ['users', 'get-remaining-session-time'] ||
+
             $actionSegs === ['users', 'logout'] ||
             $actionSegs === ['users', 'set-password'] ||
             $actionSegs === ['users', 'verify-email'] ||
-            $actionSegs === ['users', 'forgot-password'] ||
-            $actionSegs === ['users', 'send-password-reset-email'] ||
-            $actionSegs === ['users', 'save-user'] ||
-            $actionSegs === ['users', 'get-remaining-session-time'] ||
-            $actionSegs[0] === 'updater' ||
+
+            $actionSegs[0] === 'update' ||
+            $actionSegs[0] === 'manualupdate' ||
             $actionSegs[0] === 'debug'
         );
     }
@@ -219,6 +235,7 @@ class Request extends Component
 
         return (
             $request->getAbsoluteUrl() === $this->getSettingsUrl() ||
+            $actionSegs === ['two-factor-authentication', 'settings', 'force'] ||
             $actionSegs === ['two-factor-authentication', 'settings', 'turn-on']
         );
     }
@@ -250,7 +267,7 @@ class Request extends Component
             return UrlHelper::actionUrl('two-factor-authentication/settings/force');
         }
 
-        return UrlHelper::siteUrl(TwoFactorAuth::$plugin->getSettings()->getSettingsPath());
+        return UrlHelper::siteUrl(TwoFactorAuth::$plugin->getSettings()->settingsPath);
     }
 
     /**

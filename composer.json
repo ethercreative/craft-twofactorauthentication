@@ -1,7 +1,7 @@
 {
     "name": "born05/craft-twofactorauthentication",
     "description": "Craft 3 plugin for two-factor or two-step login using Time Based OTP.",
-    "version": "2.0.1",
+    "version": "2.6.1",
     "type": "craft-plugin",
     "keywords": [
         "craftcms-plugin",
@@ -21,7 +21,7 @@
         }
     ],
     "require": {
-        "craftcms/cms": ">=3.0 <3.1",
+        "craftcms/cms": "^3.1",
         "spomky-labs/otphp": "^8.3"
     },
     "autoload": {

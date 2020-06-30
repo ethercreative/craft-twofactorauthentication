@@ -1,10 +1,76 @@
 Changelog
 ==================
 
+## 2.6.1 - 2020-06-15
+
+Fixed warning of 2.6.0
+
+## 2.6.0 - 2020-06-15
+
+> {warning} BREAKING! Use frontEndPathAllow/frontEndPathExclude instead of frontEndPathWhitelist/frontEndPathBlacklist!
+
+### Improved
+- Use allow/exclude in favor of whitelist/blacklist
+- Removed `ConfigHelper::localizedValue` from config making configs more dependable.
+
+## 2.5.0 - 2020-05-19
+
+### Added
+- French translation thanks to @romainpoirier
+
+### Fixed
+- Removed some old & unused code
+
+## 2.4.0 - 2020-01-07
+
+### Fixed
+- `userLoginEventHandler` now uses verifyBackEnd and verifyFrontEnd options as it is supposed to.
+
+## 2.3.0 - 2019-11-18
+
+### Added
+- Add in the ability to add the secure redirect field to the front-end forms. Thanks to @coxeh
+
+### Fixed
+- Fixed a bug where turning off 2 step on the front end always redirects to the admin cp. Thanks to @coxeh
+
+## 2.2.0 - 2019-07-31
+
+### Added
+- Added verifyBackEnd option
+
+### Fixed
+- Fixed admin redirect issue when using forceBackEnd.
+
+## 2.1.2 - 2019-04-08
+
+### Added
+- Added `totpDelay` config option (gives the user some extra time after code expired)
+
+## 2.1.1 - 2019-02-28
+
+### Fixed
+- Disabling 2FA for other users failed
+
+## 2.1.0 - 2019-02-22
+
+### Fixed
+- Make sure the User's EVENT_AFTER_LOGIN is triggered thanks to @engram-design
+
+## 2.1.0-beta.2 - 2019-01-23
+
+### Fixed
+- Fix otphp to pull their fix for random_compat on php 7.0 thanks to @mikestecker
+
 ## 2.0.1 - 2019-01-23
 
 ### Fixed
 - Fix otphp to pull their fix for random_compat on php 7.0 thanks to @mikestecker
+
+## 2.1.0-beta.1 - 2019-01-18
+
+### Fixed
+- Support for Craft 3.1
 
 ## 2.0.0 - 2019-01-15
 

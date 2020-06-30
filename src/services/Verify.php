@@ -5,6 +5,8 @@ use Craft;
 use DateInterval;
 use OTPHP\TOTP;
 use yii\base\Component;
+use craft\db\Query;
+use craft\db\Table;
 use craft\elements\User;
 use craft\helpers\Db;
 use craft\helpers\DateTimeHelper;
@@ -67,6 +69,8 @@ class Verify extends Component
      */
     public function verify(User $user, $authenticationCode)
     {
+        $settings = TwoFactorAuth::$plugin->getSettings();
+
         $authenticationCodeModel = new AuthenticationCodeModel();
         $authenticationCodeModel->authenticationCode = str_replace(' ', '', $authenticationCode);
 
@@ -74,6 +78,13 @@ class Verify extends Component
             // Magic checking of the authentication code.
             $totp = $this->getTotp($user);
             $isValid = $this->getTotp($user)->verify($authenticationCodeModel->authenticationCode);
+
+            if (!$isValid && is_int($settings->totpDelay)) {
+                $isValid = $this->getTotp($user)->verify(
+                    $authenticationCodeModel->authenticationCode,
+                    time() - $settings->totpDelay
+                );
+            }
 
             if (!$isValid) {
                 return false;
@@ -115,9 +126,12 @@ class Verify extends Component
         $userRecord->secret = $totp->getSecret();
         $userRecord->update();
 
-        // Delete the session record
-        $twoFactorSessionRecord = $this->getTwoFactorSessionRecord($user);
-        if (isset($twoFactorSessionRecord)) {
+        // Delete the session records
+        $twoFactorSessionRecords = SessionRecord::findAll([
+            'userId' => $user->id,
+        ]);
+        
+        foreach ($twoFactorSessionRecords as $twoFactorSessionRecord) {
             $twoFactorSessionRecord->delete();
         }
     }
@@ -216,49 +230,22 @@ class Verify extends Component
      */
     private function getSessionId(User $user)
     {
-        // Extract the current session token's UID from the identity cookie
-        $cookieValue = Craft::$app->getRequest()->getCookies()->getValue(Craft::$app->getUser()->identityCookie['name']);
-        if ($cookieValue !== null) {
-            $data = json_decode($cookieValue, true);
+        $session = Craft::$app->getSession();
+        $token = $session->get(Craft::$app->user->tokenParam);
 
-            if (is_array($data) && isset($data[2])) {
-                $authData = User::authData($data[1]);
-
-                if ($authData) {
-                    $tokenUid = $authData[1];
-                }
-            }
+        if ($token === null) {
+            return;
         }
 
-        if (isset($tokenUid)) {
-            // retrieve the session id.
-            $sessionRecord = \craft\records\Session::findOne([
+        $tokenId = (new Query())
+            ->select(['id'])
+            ->from([Table::SESSIONS])
+            ->where([
+                'token' => $token,
                 'userId' => $user->id,
-                'uid' => $tokenUid,
-            ]);
+            ])
+            ->scalar();
 
-            if (isset($sessionRecord)) {
-                return $sessionRecord->id;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Determine if the UserAgent matches the current one.
-     *
-     * @param string $userAgent
-     * @return bool
-     */
-    private function checkUserAgentString($userAgent)
-    {
-        if (Craft::$app->getConfig()->get('requireMatchingUserAgentForSession')) {
-            $currentUserAgent = Craft::$app->request->getUserAgent();
-
-            return $userAgent === $currentUserAgent;
-        }
-
-        return true;
+        return $tokenId;
     }
 }
