@@ -16,7 +16,11 @@ This means the user is already logged in. When the user tries to visit an other 
 
 - Craft 3.0.0
 - PHP 7.x at least
-- `userSessionDuration` in the general.php config should be larger than 0 (by default)
+
+## Setting up back end 2FA
+
+- Set `verifyBackEnd` to `true` in the config file (this is the default).
+- Set `forceBackEnd` to `true` if you want to prevent users from accessing the control panel without first enabling 2FA.
 
 ## Setting up front end 2FA
 
@@ -53,4 +57,4 @@ Simply remove the user's `twofactorauthentication_user` record. This disables 2F
 
 Copyright © [Born05](https://www.born05.com/)
 
-See [license](https://github.com/born05/craft-twofactorauthentication/blob/master/LICENSE.md)
+See [license](https://github.com/born05/craft-twofactorauthentication/blob/craft-3.1/LICENSE.md)

@@ -1,6 +1,27 @@
 Changelog
 ==================
 
+## 2.7.0 - 2020-10-06
+Released earlier changes.
+
+### Changed
+- Move from a custom session table to storing data in the session.
+
+## 2.7.0-beta.1 - 2020-09-25
+
+### Changed
+- Move from a custom session table to storing data in the session.
+
+## 2.6.3 - 2020-09-22
+
+### Changed
+- Allow `userSessionDuration` to be `0`
+
+## 2.6.2 - 2020-09-15
+
+### Fixed
+- DateTime comparison is now between similar timezones. 
+
 ## 2.6.1 - 2020-06-15
 
 Fixed warning of 2.6.0
